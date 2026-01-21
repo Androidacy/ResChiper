@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.goldfish07.reschiper"
-version = "0.1.0-rc6"
+version = "0.2.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -28,21 +28,21 @@ repositories {
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.10.1"))
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 
     implementation(gradleApi())
-    implementation("org.jetbrains:annotations:24.1.0")
-    implementation("com.android.tools.build:gradle:8.8.0")
-    implementation("com.android.tools.build:bundletool:1.17.2")
-    implementation("com.google.guava:guava:32.1.3-jre")
-    implementation("io.grpc:grpc-protobuf:1.59.1")
-    implementation("com.android.tools.build:aapt2-proto:8.8.0-12006047")
-    implementation("commons-codec:commons-codec:1.16.0")
-    implementation("commons-io:commons-io:2.15.1")
+    implementation("org.jetbrains:annotations:26.0.1")
+    implementation("com.android.tools.build:gradle:9.0.0")
+    implementation("com.android.tools.build:bundletool:1.18.3")
+    implementation("com.google.guava:guava:33.5.0-jre")
+    implementation("io.grpc:grpc-protobuf:1.78.0")
+    implementation("com.android.tools.build:aapt2-proto:9.0.0-14304508")
+    implementation("commons-codec:commons-codec:1.17.1")
+    implementation("commons-io:commons-io:2.18.0")
     implementation("org.dom4j:dom4j:2.1.4")
-    implementation("com.google.auto.value:auto-value:1.5.4")
-    annotationProcessor("com.google.auto.value:auto-value:1.5.4")
+    implementation("com.google.auto.value:auto-value-annotations:1.11.0")
+    annotationProcessor("com.google.auto.value:auto-value:1.11.0")
 }
 
 tasks.test {

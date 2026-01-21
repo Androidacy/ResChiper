@@ -14,7 +14,7 @@ public class Extension {
     private boolean enableFilterStrings = false;
     private boolean mergeDuplicateResources = false;
     private Path mappingFile = null;
-    private String obfuscatedBundleName;
+    private String obfuscatedBundleName = "obfuscated-bundle.aab";
     private String unusedStringFile = "";
     private Set<String> fileFilterList = new HashSet<>();
     private Set<String> whiteList = new HashSet<>();

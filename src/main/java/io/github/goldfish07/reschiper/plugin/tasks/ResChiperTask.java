@@ -1,19 +1,21 @@
 package io.github.goldfish07.reschiper.plugin.tasks;
 
-import com.android.build.gradle.api.ApplicationVariant;
 import io.github.goldfish07.reschiper.plugin.command.Command;
 import io.github.goldfish07.reschiper.plugin.command.model.DuplicateResMergerCommand;
 import io.github.goldfish07.reschiper.plugin.command.model.FileFilterCommand;
 import io.github.goldfish07.reschiper.plugin.command.model.ObfuscateBundleCommand;
 import io.github.goldfish07.reschiper.plugin.command.model.StringFilterCommand;
-import io.github.goldfish07.reschiper.plugin.Extension;
 import io.github.goldfish07.reschiper.plugin.model.KeyStore;
-import io.github.goldfish07.reschiper.plugin.internal.Bundle;
-import io.github.goldfish07.reschiper.plugin.internal.SigningConfig;
 import org.gradle.api.DefaultTask;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.Property;
+import org.gradle.api.provider.SetProperty;
+import org.gradle.api.tasks.*;
 import org.jetbrains.annotations.NotNull;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -22,14 +24,9 @@ import java.util.logging.Logger;
 /**
  * Custom Gradle task for running ResChiper.
  */
-public class ResChiperTask extends DefaultTask {
+public abstract class ResChiperTask extends DefaultTask {
 
     private static final Logger logger = Logger.getLogger(ResChiperTask.class.getName());
-    private final Extension resChiperExtension = (Extension) getProject().getExtensions().getByName("resChiper");
-    private ApplicationVariant variant;
-    private KeyStore keyStore;
-    private Path bundlePath;
-    private Path obfuscatedBundlePath;
 
     /**
      * Constructor for the ResChiperTask.
@@ -40,16 +37,76 @@ public class ResChiperTask extends DefaultTask {
         getOutputs().upToDateWhen(task -> false);
     }
 
-    /**
-     * Sets the variant scope for the task.
-     *
-     * @param variant The ApplicationVariant for the Android application.
-     */
-    public void setVariantScope(ApplicationVariant variant) {
-        this.variant = variant;
-        bundlePath = Bundle.getBundleFilePath(getProject(), variant);
-        obfuscatedBundlePath = new File(bundlePath.toFile().getParentFile(), resChiperExtension.getObfuscatedBundleName()).toPath();
-    }
+    // Property-based inputs and outputs for configuration cache compatibility
+
+    @Inject
+    protected abstract ProjectLayout getProjectLayout();
+
+    @Input
+    public abstract Property<String> getVariantName();
+
+    @InputFile
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract RegularFileProperty getBundlePath();
+
+    @OutputFile
+    public abstract RegularFileProperty getObfuscatedBundlePath();
+
+    @Internal
+    public abstract DirectoryProperty getBuildDirectory();
+
+    // Extension properties
+    @Input
+    public abstract Property<Boolean> getEnableObfuscation();
+
+    @Input
+    public abstract Property<String> getObfuscationMode();
+
+    @Input
+    public abstract Property<Boolean> getEnableFileFiltering();
+
+    @Input
+    public abstract Property<Boolean> getEnableFilterStrings();
+
+    @Input
+    public abstract Property<Boolean> getMergeDuplicateResources();
+
+    @Input
+    @Optional
+    public abstract Property<String> getMappingFilePath();
+
+    @Input
+    public abstract Property<String> getObfuscatedBundleName();
+
+    @Input
+    public abstract Property<String> getUnusedStringFilePath();
+
+    @Input
+    public abstract SetProperty<String> getFileFilterList();
+
+    @Input
+    public abstract SetProperty<String> getWhiteList();
+
+    @Input
+    public abstract SetProperty<String> getLocaleWhiteList();
+
+    // Signing config properties
+    @Input
+    @Optional
+    public abstract Property<String> getKeyStorePath();
+
+    @Input
+    @Optional
+    public abstract Property<String> getStorePassword();
+
+    @Input
+    @Optional
+    public abstract Property<String> getKeyAlias();
+
+    @Input
+    @Optional
+    public abstract Property<String> getKeyPassword();
+
 
     /**
      * Executes the ResChiperTask.
@@ -58,27 +115,37 @@ public class ResChiperTask extends DefaultTask {
      */
     @TaskAction
     public void execute() throws Exception {
-        logger.log(Level.INFO, resChiperExtension.toString());
-        keyStore = SigningConfig.getSigningConfig(variant);
-        printSignConfiguration();
+        logger.log(Level.INFO, buildExtensionString());
+
+        // Build KeyStore from properties
+        KeyStore keyStore = buildKeyStore();
+
+        printSignConfiguration(keyStore);
         printOutputFileLocation();
-        prepareUnusedFile();
+
+        // Resolve unused string file path at execution time (config-cache safe)
+        String resolvedUnusedStringPath = resolveUnusedStringFilePath();
+
+        Path bundlePath = getBundlePath().get().getAsFile().toPath();
+        Path obfuscatedBundlePath = getObfuscatedBundlePath().get().getAsFile().toPath();
+
         Command.Builder builder = Command.builder();
         builder.setBundlePath(bundlePath);
         builder.setOutputPath(obfuscatedBundlePath);
 
         ObfuscateBundleCommand.Builder obfuscateBuilder = ObfuscateBundleCommand.builder()
-                .setEnableObfuscate(resChiperExtension.getEnableObfuscation())
-                .setObfuscationMode(resChiperExtension.getObfuscationMode())
-                .setMergeDuplicatedResources(resChiperExtension.getMergeDuplicateResources())
-                .setWhiteList(resChiperExtension.getWhiteList())
-                .setFilterFile(resChiperExtension.getEnableFileFiltering())
-                .setFileFilterRules(resChiperExtension.getFileFilterList())
-                .setRemoveStr(resChiperExtension.getEnableFilterStrings())
-                .setUnusedStrPath(resChiperExtension.getUnusedStringFile())
-                .setLanguageWhiteList(resChiperExtension.getLocaleWhiteList());
-        if (resChiperExtension.getMappingFile() != null)
-            obfuscateBuilder.setMappingPath(resChiperExtension.getMappingFile());
+                .setEnableObfuscate(getEnableObfuscation().get())
+                .setObfuscationMode(getObfuscationMode().get())
+                .setMergeDuplicatedResources(getMergeDuplicateResources().get())
+                .setWhiteList(getWhiteList().get())
+                .setFilterFile(getEnableFileFiltering().get())
+                .setFileFilterRules(getFileFilterList().get())
+                .setRemoveStr(getEnableFilterStrings().get())
+                .setUnusedStrPath(resolvedUnusedStringPath)
+                .setLanguageWhiteList(getLocaleWhiteList().get());
+
+        if (getMappingFilePath().isPresent() && !getMappingFilePath().get().isEmpty())
+            obfuscateBuilder.setMappingPath(Path.of(getMappingFilePath().get()));
 
         if (keyStore.storeFile() != null && keyStore.storeFile().exists())
             builder.setStoreFile(keyStore.storeFile().toPath())
@@ -89,7 +156,7 @@ public class ResChiperTask extends DefaultTask {
         builder.setObfuscateBundleBuilder(obfuscateBuilder.build());
 
         FileFilterCommand.Builder fileFilterBuilder = FileFilterCommand.builder();
-        fileFilterBuilder.setFileFilterRules(resChiperExtension.getFileFilterList());
+        fileFilterBuilder.setFileFilterRules(getFileFilterList().get());
         builder.setFileFilterBuilder(fileFilterBuilder.build());
 
         StringFilterCommand.Builder stringFilterBuilder = StringFilterCommand.builder();
@@ -103,30 +170,86 @@ public class ResChiperTask extends DefaultTask {
     }
 
     /**
-     * Prepares the unused file for filtering.
+     * Builds a KeyStore from the task properties.
      */
-    private void prepareUnusedFile() {
-        String simpleName = variant.getName().replace("Release", "");
-        String name = Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
-        String resourcePath = getProject().getBuildDir() + "/outputs/mapping/" + name + "/release/unused_strings.txt";
-        File usedFile = new File(resourcePath);
+    private KeyStore buildKeyStore() {
+        File storeFile = null;
+        if (getKeyStorePath().isPresent() && !getKeyStorePath().get().isEmpty()) {
+            storeFile = new File(getKeyStorePath().get());
+        }
+        return new KeyStore(
+                storeFile,
+                getStorePassword().getOrElse(null),
+                getKeyAlias().getOrElse(null),
+                getKeyPassword().getOrElse(null)
+        );
+    }
 
-        if (usedFile.exists()) {
-            System.out.println("find unused_strings.txt: " + usedFile.getAbsolutePath());
-            if (resChiperExtension.getEnableFilterStrings())
-                if (resChiperExtension.getUnusedStringFile() == null || resChiperExtension.getUnusedStringFile().isBlank()) {
-                    resChiperExtension.setUnusedStringFile(usedFile.getAbsolutePath());
-                    logger.log(Level.SEVERE, "replace unused_strings.txt!");
-                }
-        } else
-            logger.log(Level.SEVERE, "not exists unused_strings.txt: " + usedFile.getAbsolutePath()
-                    + "\nuse default path: " + resChiperExtension.getUnusedStringFile());
+    /**
+     * Builds a string representation of extension configuration.
+     */
+    private String buildExtensionString() {
+        return "-------------- Extension --------------\n" +
+                "\tenableObfuscation=" + getEnableObfuscation().get() + "\n" +
+                "\tobfuscationMode=" + getObfuscationMode().get() + "\n" +
+                "\tenableFileFiltering=" + getEnableFileFiltering().get() + "\n" +
+                "\tenableFilterStrings=" + getEnableFilterStrings().get() + "\n" +
+                "\tmergeDuplicateResources=" + getMergeDuplicateResources().get() + "\n" +
+                "\tmappingFile=" + getMappingFilePath().getOrElse(null) + "\n" +
+                "\tobfuscatedBundleName=" + getObfuscatedBundleName().get() + "\n" +
+                "\tunusedStringFile=" + getUnusedStringFilePath().get() + "\n" +
+                "\tfileFilterList=" + getFileFilterList().get() + "\n" +
+                "\tlocaleWhiteList=" + getLocaleWhiteList().get() + "\n" +
+                "\twhiteList=" + getWhiteList().get() + "\n";
+    }
+
+    /**
+     * Resolves the unused strings file path at execution time.
+     * Returns either the configured path or auto-detected path from build outputs.
+     *
+     * @return The resolved unused strings file path
+     */
+    private String resolveUnusedStringFilePath() {
+        String configuredPath = getUnusedStringFilePath().get();
+
+        // If a path is already configured, use it
+        if (configuredPath != null && !configuredPath.isBlank()) {
+            File configuredFile = new File(configuredPath);
+            if (configuredFile.exists()) {
+                System.out.println("Using configured unused_strings.txt: " + configuredPath);
+                return configuredPath;
+            }
+        }
+
+        // Auto-detect from build outputs
+        String variantName = getVariantName().get();
+        // Extract flavor name by removing build type suffix (Release/Debug)
+        String simpleName = variantName.replaceAll("(?i)(Release|Debug)$", "");
+        String name;
+        if (simpleName.isEmpty()) {
+            // No flavor, just use the build type
+            name = variantName.toLowerCase();
+        } else {
+            name = Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
+        }
+        // Determine build type for path
+        String buildType = variantName.toLowerCase().endsWith("release") ? "release" : "debug";
+        String resourcePath = getBuildDirectory().get().getAsFile().getAbsolutePath() + "/outputs/mapping/" + name + "/" + buildType + "/unused_strings.txt";
+        File autoDetectedFile = new File(resourcePath);
+
+        if (autoDetectedFile.exists()) {
+            System.out.println("Auto-detected unused_strings.txt: " + autoDetectedFile.getAbsolutePath());
+            return autoDetectedFile.getAbsolutePath();
+        }
+
+        logger.log(Level.WARNING, "unused_strings.txt not found at: " + resourcePath);
+        return configuredPath != null ? configuredPath : "";
     }
 
     /**
      * Prints the signing configuration.
      */
-    private void printSignConfiguration() {
+    private void printSignConfiguration(KeyStore keyStore) {
         System.out.println("----------------------------------------");
         System.out.println(" Signing Configuration");
         System.out.println("----------------------------------------");
@@ -140,6 +263,7 @@ public class ResChiperTask extends DefaultTask {
      * Prints the output file location.
      */
     private void printOutputFileLocation() {
+        Path obfuscatedBundlePath = getObfuscatedBundlePath().get().getAsFile().toPath();
         System.out.println("----------------------------------------");
         System.out.println(" Output configuration");
         System.out.println("----------------------------------------");
