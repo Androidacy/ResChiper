@@ -51,7 +51,7 @@ In your project's root-level `build.gradle` file, add the ResChiper Gradle plugi
 ```gradle
 buildscript {
   dependencies {
-    classpath "io.github.goldfish07.reschiper:plugin:<latest_version>"
+    classpath "com.androidacy.reschiper:plugin:<latest_version>"
   }
   
   repositories {
@@ -66,7 +66,7 @@ buildscript {
 In your app-level `build.gradle` file, apply the ResChiper plugin:
 
 ```gradle
-apply plugin: "io.github.goldfish07.reschiper"
+apply plugin: "com.androidacy.reschiper"
 ```
 
 #### 3. Configure the Plugin

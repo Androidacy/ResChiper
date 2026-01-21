@@ -1,25 +1,15 @@
 plugins {
     id("java")
-    id("maven-publish")
-    id("signing")
+    id("java-gradle-plugin")
+    id("com.vanniktech.maven.publish") version "0.30.0"
 }
 
-group = "io.github.goldfish07.reschiper"
+group = "com.androidacy.reschiper"
 version = "0.2.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
-}
-
-val sourcesJar by tasks.registering(Jar::class) {
-    from(sourceSets["main"].allJava)
-    archiveClassifier.set("sources")
-}
-
-val javadocJar by tasks.registering(Jar::class) {
-    from(tasks.javadoc)
-    archiveClassifier.set("javadoc")
 }
 
 repositories {
@@ -49,58 +39,59 @@ tasks.test {
     useJUnitPlatform()
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            groupId = rootProject.group.toString()
-            version = rootProject.version.toString()
-            artifactId = "plugin"
+gradlePlugin {
+    plugins {
+        create("resChiper") {
+            id = "com.androidacy.reschiper"
+            implementationClass = "com.androidacy.reschiper.ResChiperPlugin"
+            displayName = "ResChiper"
             description = "AAB Resource Obfuscation Tool"
-            from(components["java"])
-            artifact(sourcesJar)
-            artifact(javadocJar)
-
-            pom {
-                packaging = "jar"
-                name.set("ResChiper")
-                description.set("A tool for obfuscating Android AAB resources")
-                url.set("https://github.com/goldfish07/reschiper")
-
-                licenses {
-                    license {
-                        name.set("Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                developers {
-                    developer {
-                        id.set(project.findProperty("ossrhUsername").toString())
-                        name.set(project.findProperty("devSimpleName").toString())
-                        email.set(project.findProperty("devMail").toString())
-                    }
-                }
-
-                scm {
-                    connection.set("scm:git:git://github.com/goldfish07/reschiper.git")
-                    developerConnection.set("scm:git:ssh://github.com/goldfish07/reschiper.git")
-                    url.set("https://github.com/goldfish07/reschiper")
-                }
-            }
-        }
-    }
-
-    repositories {
-        mavenLocal()
-        maven {
-            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            credentials {
-                username = project.findProperty("ossrhUsername").toString()
-                password = project.findProperty("ossrhPassword").toString()
-            }
         }
     }
 }
 
-signing {
-    sign(publishing.publications["mavenJava"])
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
+
+    if (project.hasProperty("signingInMemoryKey")) {
+        signAllPublications()
+    }
+
+    coordinates("com.androidacy.reschiper", "plugin", version.toString())
+
+    pom {
+        name.set("ResChiper")
+        description.set("A tool for obfuscating Android AAB resources")
+        url.set("https://github.com/nickkelly/ResChiper")
+        inceptionYear.set("2023")
+
+        licenses {
+            license {
+                name.set("Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("repo")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("nickkelly")
+                name.set("Nick Kelly")
+                email.set("nickkelly@androidacy.com")
+                organization.set("Androidacy")
+                organizationUrl.set("https://androidacy.com")
+            }
+            developer {
+                id.set("goldfish07")
+                name.set("Ayush Bisht")
+                email.set("ayushbisht5663@gmail.com")
+            }
+        }
+
+        scm {
+            connection.set("scm:git:git://github.com/nickkelly/ResChiper.git")
+            developerConnection.set("scm:git:ssh://github.com/nickkelly/ResChiper.git")
+            url.set("https://github.com/nickkelly/ResChiper")
+        }
+    }
 }
