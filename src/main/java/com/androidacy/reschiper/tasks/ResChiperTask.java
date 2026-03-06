@@ -98,15 +98,15 @@ public abstract class ResChiperTask extends DefaultTask {
     @Optional
     public abstract Property<String> getKeyStorePath();
 
-    @Input
+    @Internal
     @Optional
     public abstract Property<String> getStorePassword();
 
-    @Input
+    @Internal
     @Optional
     public abstract Property<String> getKeyAlias();
 
-    @Input
+    @Internal
     @Optional
     public abstract Property<String> getKeyPassword();
 
@@ -295,7 +295,7 @@ public abstract class ResChiperTask extends DefaultTask {
         if (value == null)
             return "/";
         if (value.length() > 2)
-            return value.substring(0, value.length() / 2) + "****";
+            return value.substring(0, Math.min(2, value.length())) + "****";
         return "****";
     }
 

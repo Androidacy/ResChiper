@@ -51,23 +51,28 @@ public class OpenJDKJarSigner {
             args.add(signature.keyAlias());
         File errorLog = File.createTempFile("error", ".log");
         File outputLog = File.createTempFile("output", ".log");
-        logger.fine("Invoking " + Joiner.on(" ").join(args));
-        Process process = start(new ProcessBuilder(args).redirectError(errorLog).redirectOutput(outputLog));
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            String errors = FileUtils.loadFileWithUnixLineSeparators(errorLog);
-            String output = FileUtils.loadFileWithUnixLineSeparators(outputLog);
-            throw new RuntimeException(
-                    String.format("%s failed with exit code %d: \n %s",
-                            jarSignerExec, exitCode,
-                            errors.trim().isEmpty() ? output : errors
-                    )
-            );
+        try {
+            logger.fine("Invoking " + Joiner.on(" ").join(args));
+            Process process = start(new ProcessBuilder(args).redirectError(errorLog).redirectOutput(outputLog));
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                String errors = FileUtils.loadFileWithUnixLineSeparators(errorLog);
+                String output = FileUtils.loadFileWithUnixLineSeparators(outputLog);
+                throw new RuntimeException(
+                        String.format("%s failed with exit code %d: \n %s",
+                                jarSignerExec, exitCode,
+                                errors.trim().isEmpty() ? output : errors
+                        )
+                );
+            }
+        } finally {
+            if (keyStorePasswordFile != null)
+                keyStorePasswordFile.delete();
+            if (aliasPasswordFile != null)
+                aliasPasswordFile.delete();
+            errorLog.delete();
+            outputLog.delete();
         }
-        if (keyStorePasswordFile != null)
-            keyStorePasswordFile.delete();
-        if (aliasPasswordFile != null)
-            aliasPasswordFile.delete();
     }
 
     @Contract("_ -> new")
