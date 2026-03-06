@@ -12,6 +12,7 @@ import com.androidacy.reschiper.utils.TimeClock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.rmi.UnexpectedException;
@@ -29,7 +30,7 @@ import static com.android.tools.build.bundletool.model.utils.files.FilePrecondit
  * It allows users to specify rules for filtering files within the bundle and removes the specified files according to
  * the defined rules. Additionally, it filters metadata files and updates the bundle accordingly.
  */
-public class BundleFileFilter {
+public class BundleFileFilter implements Closeable {
     private static final Set<String> FILE_SIGN = new HashSet<>(
             ImmutableSet.of(
                     "META-INF/*.RSA",
@@ -203,5 +204,10 @@ public class BundleFileFilter {
                 return rule;
         }
         return null;
+    }
+
+    @Override
+    public void close() throws IOException {
+        bundleZipFile.close();
     }
 }

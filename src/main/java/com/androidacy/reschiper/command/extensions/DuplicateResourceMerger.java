@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipFile;
+import java.io.Closeable;
 
 import static com.android.tools.build.bundletool.model.utils.files.FilePreconditions.checkFileDoesNotExist;
 import static com.android.tools.build.bundletool.model.utils.files.FilePreconditions.checkFileExistsAndReadable;
@@ -31,7 +32,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
  * This class processes each module in the App Bundle, identifies duplicated resources, and generates
  * a log file with information about the merged resources and their original paths.
  */
-public class DuplicateResourceMerger {
+public class DuplicateResourceMerger implements Closeable {
     private static final Logger logger = Logger.getLogger(DuplicateResourceMerger.class.getName());
     public static final String DUPLICATE_LOGGER_FILE_SUFFIX = "-duplicate.txt";
     private final Path outputLogLocationDir;
@@ -176,37 +177,42 @@ public class DuplicateResourceMerger {
     private void generateDuplicatedLog(@NotNull File logFile, BundleModule bundleModule) throws IOException {
         int duplicatedSize = 0;
         checkFileDoesNotExist(logFile.toPath());
-        Writer writer = new BufferedWriter(new FileWriter(logFile, false));
-        writer.write("res filter path mapping:\n");
-        writer.flush();
-        System.out.println("----------------------------------------");
-        System.out.println(" Resource Duplication Detected:");
-        System.out.println("----------------------------------------");
+        try (Writer writer = new BufferedWriter(new FileWriter(logFile, false))) {
+            writer.write("res filter path mapping:\n");
+            writer.flush();
+            System.out.println("----------------------------------------");
+            System.out.println(" Resource Duplication Detected:");
+            System.out.println("----------------------------------------");
 
-        for (Map.Entry<ZipPath, String> entry : duplicatedFileList.entrySet()) {
-            ModuleEntry moduleEntry = bundleModule.getEntry(entry.getKey()).get();
-            long fileSize = AppBundleUtils.getZipEntrySize(bundleZipFile, moduleEntry, bundleModule);
-            duplicatedSize += (int) fileSize;
-        }
+            for (Map.Entry<ZipPath, String> entry : duplicatedFileList.entrySet()) {
+                ModuleEntry moduleEntry = bundleModule.getEntry(entry.getKey()).get();
+                long fileSize = AppBundleUtils.getZipEntrySize(bundleZipFile, moduleEntry, bundleModule);
+                duplicatedSize += (int) fileSize;
+            }
 
-        System.out.printf("Found duplicated resources (Count: %d, Total Size: %s):\n%n", duplicatedFileList.size(), FileOperation.getNetFileSizeDescription(duplicatedSize));
-        duplicatedSize = 0;
-        for (Map.Entry<ZipPath, String> entry : duplicatedFileList.entrySet()) {
-            ZipPath keepPath = md5FileList.get(entry.getValue());
-            ModuleEntry moduleEntry = bundleModule.getEntry(entry.getKey()).get();
-            long fileSize = AppBundleUtils.getZipEntrySize(bundleZipFile, moduleEntry, bundleModule);
-            duplicatedSize += (int) fileSize;
-            System.out.printf("- %s (size %s)%n", entry.getKey().toString(), FileOperation.getNetFileSizeDescription(duplicatedSize));
-            writer.write("\t" + entry.getKey().toString()
-                    + " -> "
-                    + keepPath.toString()
-                    + " (size " + FileOperation.getNetFileSizeDescription(fileSize) + ")"
-                    + "\n"
-            );
+            System.out.printf("Found duplicated resources (Count: %d, Total Size: %s):\n%n", duplicatedFileList.size(), FileOperation.getNetFileSizeDescription(duplicatedSize));
+            duplicatedSize = 0;
+            for (Map.Entry<ZipPath, String> entry : duplicatedFileList.entrySet()) {
+                ZipPath keepPath = md5FileList.get(entry.getValue());
+                ModuleEntry moduleEntry = bundleModule.getEntry(entry.getKey()).get();
+                long fileSize = AppBundleUtils.getZipEntrySize(bundleZipFile, moduleEntry, bundleModule);
+                duplicatedSize += (int) fileSize;
+                System.out.printf("- %s (size %s)%n", entry.getKey().toString(), FileOperation.getNetFileSizeDescription(duplicatedSize));
+                writer.write("\t" + entry.getKey().toString()
+                        + " -> "
+                        + keepPath.toString()
+                        + " (size " + FileOperation.getNetFileSizeDescription(fileSize) + ")"
+                        + "\n"
+                );
+            }
+            writer.write("removed: count(" + duplicatedFileList.size() + "), totalSize(" + FileOperation.getNetFileSizeDescription(duplicatedSize) + ")");
         }
-        writer.write("removed: count(" + duplicatedFileList.size() + "), totalSize(" + FileOperation.getNetFileSizeDescription(duplicatedSize) + ")");
-        writer.close();
         mergeDuplicatedTotalSize += duplicatedSize;
         mergeDuplicatedTotalCount += duplicatedFileList.size();
+    }
+
+    @Override
+    public void close() throws IOException {
+        bundleZipFile.close();
     }
 }

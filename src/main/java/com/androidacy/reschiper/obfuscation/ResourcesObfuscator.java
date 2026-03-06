@@ -16,6 +16,7 @@ import com.androidacy.reschiper.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,7 +32,7 @@ import java.util.zip.ZipFile;
  * The `ResourcesObfuscator` class is responsible for obfuscating resources in an Android AppBundle.
  * It performs resource obfuscation based on provided mapping rules, while also allowing for whitelisting of resources.
  */
-public class ResourcesObfuscator {
+public class ResourcesObfuscator implements Closeable {
     public static final String RESOURCE_ANDROID_PREFIX = "android:";
     public static final String FILE_MAPPING_NAME = "resources-mapping.txt";
     private static final Logger logger = Logger.getLogger(ResourcesObfuscator.class.getName());
@@ -417,5 +418,10 @@ public class ResourcesObfuscator {
                 return true;
         }
         return false;
+    }
+
+    @Override
+    public void close() throws IOException {
+        bundleZipFile.close();
     }
 }

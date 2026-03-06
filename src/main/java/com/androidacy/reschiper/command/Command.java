@@ -123,8 +123,9 @@ public abstract class Command {
                 Set<String> fileFilterRules = new HashSet<>();
                 if (bundleCommand.getFileFilterRules().isPresent())
                     fileFilterRules = bundleCommand.getFileFilterRules().get();
-                BundleFileFilter filter = new BundleFileFilter(getBundlePath(), appBundle, fileFilterRules);
-                appBundle = filter.filter();
+                try (BundleFileFilter filter = new BundleFileFilter(getBundlePath(), appBundle, fileFilterRules)) {
+                    appBundle = filter.filter();
+                }
             }
 
             // remove unused strings need to execute before obfuscate
@@ -146,8 +147,9 @@ public abstract class Command {
 
             // merge duplicated resources
             if (bundleCommand.getMergeDuplicatedResources().isPresent() && bundleCommand.getMergeDuplicatedResources().get()) {
-                DuplicateResourceMerger merger = new DuplicateResourceMerger(getBundlePath(), appBundle, getOutputPath().getParent());
-                appBundle = merger.merge();
+                try (DuplicateResourceMerger merger = new DuplicateResourceMerger(getBundlePath(), appBundle, getOutputPath().getParent())) {
+                    appBundle = merger.merge();
+                }
             }
 
             // obfuscate bundle
@@ -155,9 +157,10 @@ public abstract class Command {
                 Path mappingPath = null;
                 if (bundleCommand.getMappingPath().isPresent())
                     mappingPath = bundleCommand.getMappingPath().get();
-                ResourcesObfuscator obfuscator = new ResourcesObfuscator(getBundlePath(), appBundle, bundleCommand.getWhiteList(), getOutputPath().getParent(), mappingPath);
-                obfuscator.withMode(obfuscator.getMode(bundleCommand.getObfuscationMode() == null ? "default" : bundleCommand.getObfuscationMode()));
-                appBundle = obfuscator.obfuscate();
+                try (ResourcesObfuscator obfuscator = new ResourcesObfuscator(getBundlePath(), appBundle, bundleCommand.getWhiteList(), getOutputPath().getParent(), mappingPath)) {
+                    obfuscator.withMode(obfuscator.getMode(bundleCommand.getObfuscationMode() == null ? "default" : bundleCommand.getObfuscationMode()));
+                    appBundle = obfuscator.obfuscate();
+                }
             }
 
             // package bundle
@@ -183,8 +186,9 @@ public abstract class Command {
         } else if (commandType == TYPE.DUPLICATE_RES_MERGE) {
             DuplicateResMergerCommand resMergeCommand = getDuplicateResMergeBuilder();
             // merge duplicated resources file
-            DuplicateResourceMerger merger = new DuplicateResourceMerger(getBundlePath(), appBundle, getOutputPath().getParent());
-            appBundle = merger.merge();
+            try (DuplicateResourceMerger merger = new DuplicateResourceMerger(getBundlePath(), appBundle, getOutputPath().getParent())) {
+                appBundle = merger.merge();
+            }
             // package bundle
             new AppBundlePackager(appBundle, getOutputPath()).execute();
             // sign bundle
@@ -205,8 +209,10 @@ public abstract class Command {
         } else if (commandType == TYPE.FILTER_FILE && getFileFilterBuilder().isPresent()) {
             FileFilterCommand fileFilterCommand = getFileFilterBuilder().get();
             // filter bundle files
-            BundleFileFilter filter = new BundleFileFilter(getBundlePath(), appBundle, fileFilterCommand.getFileFilterRules());
-            AppBundle filteredAppBundle = filter.filter();
+            AppBundle filteredAppBundle;
+            try (BundleFileFilter filter = new BundleFileFilter(getBundlePath(), appBundle, fileFilterCommand.getFileFilterRules())) {
+                filteredAppBundle = filter.filter();
+            }
             // package bundle
             new AppBundlePackager(filteredAppBundle, getOutputPath()).execute();
             // sign bundle

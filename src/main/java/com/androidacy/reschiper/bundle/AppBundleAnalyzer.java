@@ -35,9 +35,10 @@ public class AppBundleAnalyzer {
      */
     public AppBundle analyze() throws IOException {
         TimeClock timeClock = new TimeClock();
-        ZipFile bundleZip = new ZipFile(bundlePath.toFile());
-        AppBundle appBundle = AppBundle.buildFromZip(bundleZip);
-        System.out.printf("Analysis of the bundle file completed, took %s%n", timeClock.getElapsedTime());
-        return appBundle;
+        try (ZipFile bundleZip = new ZipFile(bundlePath.toFile())) {
+            AppBundle appBundle = AppBundle.buildFromZip(bundleZip);
+            System.out.printf("Analysis of the bundle file completed, took %s%n", timeClock.getElapsedTime());
+            return appBundle;
+        }
     }
 }
