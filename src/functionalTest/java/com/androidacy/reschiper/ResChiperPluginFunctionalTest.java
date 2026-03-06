@@ -88,7 +88,7 @@ class ResChiperPluginFunctionalTest {
     private BuildResult runBuild(Path projectDir) {
         return GradleRunner.create()
                 .withProjectDir(projectDir.toFile())
-                .withArguments("bundleDebug", "--stacktrace")
+                .withArguments("bundleDebug", "--stacktrace", "--configuration-cache")
                 .withPluginClasspath()
                 .forwardOutput()
                 .build();
