@@ -188,7 +188,7 @@ public abstract class Command {
             // package bundle
             new AppBundlePackager(appBundle, getOutputPath()).execute();
             // sign bundle
-            if (resMergeCommand.getDisableSign().isPresent() || !resMergeCommand.getDisableSign().get()) {
+            if (resMergeCommand.getDisableSign().isEmpty() || !resMergeCommand.getDisableSign().get()) {
                 AppBundleSigner signer = new AppBundleSigner(getOutputPath());
                 getStoreFile().ifPresent(storeFile -> {
                     if (getStorePassword().isPresent() && getKeyAlias().isPresent() && getKeyPassword().isPresent())
@@ -210,7 +210,7 @@ public abstract class Command {
             // package bundle
             new AppBundlePackager(filteredAppBundle, getOutputPath()).execute();
             // sign bundle
-            if (fileFilterCommand.getDisableSign().isPresent() || !fileFilterCommand.getDisableSign().get()) {
+            if (fileFilterCommand.getDisableSign().isEmpty() || !fileFilterCommand.getDisableSign().get()) {
                 AppBundleSigner signer = new AppBundleSigner(getOutputPath());
                 getStoreFile().ifPresent(storeFile -> {
                     if (getStorePassword().isPresent() && getKeyAlias().isPresent() && getKeyPassword().isPresent())

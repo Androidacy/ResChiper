@@ -43,7 +43,7 @@ public class OpenJDKJarSigner {
         if (signature.keyPassword() != null) {
             aliasPasswordFile = File.createTempFile("alias", "prv");
             FileUtils.writeToFile(aliasPasswordFile, signature.keyPassword());
-            args.add("--keypass:file");
+            args.add("-keypass:file");
             args.add(aliasPasswordFile.getAbsolutePath());
         }
         args.add(toBeSigned.getAbsolutePath());
