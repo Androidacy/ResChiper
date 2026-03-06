@@ -13,6 +13,7 @@ import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.SetProperty;
 import org.gradle.api.tasks.*;
+import org.gradle.work.DisableCachingByDefault;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
@@ -24,6 +25,7 @@ import java.util.logging.Logger;
 /**
  * Custom Gradle task for running ResChiper.
  */
+@DisableCachingByDefault(because = "Obfuscation output depends on the full bundle content and is not safely cacheable")
 public abstract class ResChiperTask extends DefaultTask {
 
     private static final Logger logger = Logger.getLogger(ResChiperTask.class.getName());
