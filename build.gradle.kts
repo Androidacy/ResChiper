@@ -46,6 +46,7 @@ configurations[functionalTest.runtimeOnlyConfigurationName].extendsFrom(configur
 
 dependencies {
     "functionalTestImplementation"(gradleTestKit())
+    "functionalTestRuntimeOnly"("org.junit.platform:junit-platform-launcher")
 }
 
 val functionalTestTask = tasks.register<Test>("functionalTest") {

@@ -55,10 +55,8 @@ public class BundleFileFilter {
         checkFileExistsAndReadable(bundlePath);
         this.bundleZipFile = new ZipFile(bundlePath.toFile());
         this.rawAppBundle = rawAppBundle;
-        if (filterRules == null)
-            filterRules = new HashSet<>();
-        this.filterRules = filterRules;
-        filterRules.addAll(FILE_SIGN);
+        this.filterRules = new HashSet<>(filterRules != null ? filterRules : Set.of());
+        this.filterRules.addAll(FILE_SIGN);
     }
 
     /**
