@@ -46,11 +46,6 @@ public class ResChiperPlugin implements Plugin<Project> {
         // Register the task using the new API
         project.getTasks().register(taskName, ResChiperTask.class, task -> {
             configureResChiperTask(project, task, variant);
-
-            task.doFirst(t -> {
-                printResChiperBuildConfiguration();
-                printProjectBuildConfiguration(project);
-            });
         });
 
         // Configure task dependencies after evaluation
@@ -137,6 +132,10 @@ public class ResChiperPlugin implements Plugin<Project> {
         task.getStorePassword().set(keyStore.storePassword() != null ? keyStore.storePassword() : "");
         task.getKeyAlias().set(keyStore.keyAlias() != null ? keyStore.keyAlias() : "");
         task.getKeyPassword().set(keyStore.keyPassword() != null ? keyStore.keyPassword() : "");
+
+        task.getProjectName().set(project.getRootProject().getName());
+        task.getAgpVersion().set(AGP.getAGPVersion(project));
+        task.getGradleVersion().set(project.getGradle().getGradleVersion());
     }
 
     /**
@@ -148,33 +147,6 @@ public class ResChiperPlugin implements Plugin<Project> {
         if (!project.getPlugins().hasPlugin("com.android.application")) {
             throw new GradleException("Android Application plugin 'com.android.application' is required");
         }
-    }
-
-    /**
-     * Prints the ResChiper build configuration information.
-     */
-    private void printResChiperBuildConfiguration() {
-        System.out.println("----------------------------------------");
-        System.out.println(" ResChiper Plugin Configuration:");
-        System.out.println("----------------------------------------");
-        System.out.println("- ResChiper version:\t" + ResChiper.VERSION);
-        System.out.println("- BundleTool version:\t" + ResChiper.BT_VERSION);
-        System.out.println("- AGP version:\t\t" + ResChiper.AGP_VERSION);
-        System.out.println("- Gradle Wrapper:\t" + ResChiper.GRADLE_WRAPPER_VERSION);
-    }
-
-    /**
-     * Prints the project's build information.
-     *
-     * @param project The Android Gradle project.
-     */
-    private void printProjectBuildConfiguration(@NotNull Project project) {
-        System.out.println("----------------------------------------");
-        System.out.println(" App Build Information:");
-        System.out.println("----------------------------------------");
-        System.out.println("- Project name:\t\t\t" + project.getRootProject().getName());
-        System.out.println("- AGP version:\t\t\t" + AGP.getAGPVersion(project));
-        System.out.println("- Running Gradle version:\t" + project.getGradle().getGradleVersion());
     }
 
     /**

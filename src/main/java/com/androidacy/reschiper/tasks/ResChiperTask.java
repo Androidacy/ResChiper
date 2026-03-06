@@ -1,5 +1,6 @@
 package com.androidacy.reschiper.tasks;
 
+import com.androidacy.reschiper.ResChiper;
 import com.androidacy.reschiper.command.Command;
 import com.androidacy.reschiper.command.model.DuplicateResMergerCommand;
 import com.androidacy.reschiper.command.model.FileFilterCommand;
@@ -109,6 +110,14 @@ public abstract class ResChiperTask extends DefaultTask {
     @Optional
     public abstract Property<String> getKeyPassword();
 
+    @Internal
+    public abstract Property<String> getProjectName();
+
+    @Internal
+    public abstract Property<String> getAgpVersion();
+
+    @Internal
+    public abstract Property<String> getGradleVersion();
 
     /**
      * Executes the ResChiperTask.
@@ -117,6 +126,8 @@ public abstract class ResChiperTask extends DefaultTask {
      */
     @TaskAction
     public void execute() throws Exception {
+        printResChiperBuildConfiguration();
+        printProjectBuildConfiguration();
         logger.log(Level.INFO, buildExtensionString());
 
         // Build KeyStore from properties
@@ -286,5 +297,24 @@ public abstract class ResChiperTask extends DefaultTask {
         if (value.length() > 2)
             return value.substring(0, value.length() / 2) + "****";
         return "****";
+    }
+
+    private void printResChiperBuildConfiguration() {
+        System.out.println("----------------------------------------");
+        System.out.println(" ResChiper Plugin Configuration:");
+        System.out.println("----------------------------------------");
+        System.out.println("- ResChiper version:\t" + ResChiper.VERSION);
+        System.out.println("- BundleTool version:\t" + ResChiper.BT_VERSION);
+        System.out.println("- AGP version:\t\t" + ResChiper.AGP_VERSION);
+        System.out.println("- Gradle Wrapper:\t" + ResChiper.GRADLE_WRAPPER_VERSION);
+    }
+
+    private void printProjectBuildConfiguration() {
+        System.out.println("----------------------------------------");
+        System.out.println(" App Build Information:");
+        System.out.println("----------------------------------------");
+        System.out.println("- Project name:\t\t\t" + getProjectName().getOrElse("unknown"));
+        System.out.println("- AGP version:\t\t\t" + getAgpVersion().getOrElse("unknown"));
+        System.out.println("- Running Gradle version:\t" + getGradleVersion().getOrElse("unknown"));
     }
 }
