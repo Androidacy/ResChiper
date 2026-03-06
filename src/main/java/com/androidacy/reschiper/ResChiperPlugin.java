@@ -14,8 +14,6 @@ import org.gradle.api.file.RegularFile;
 import org.gradle.api.provider.Provider;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-
 /**
  * Plugin for integrating ResChiper into an Android Gradle project.
  */
@@ -102,11 +100,13 @@ public class ResChiperPlugin implements Plugin<Project> {
         Provider<RegularFile> bundleProvider = Bundle.getBundleFileProvider(variant);
         task.getBundlePath().set(bundleProvider);
 
-        // Set obfuscated bundle output path
-        task.getObfuscatedBundlePath().set(project.getLayout().file(bundleProvider.map(bundle -> {
-            File bundleFile = bundle.getAsFile();
-            return new File(bundleFile.getParentFile(), extension.getObfuscatedBundleName());
-        })));
+        // Set obfuscated bundle output path - computed from build directory, not from the
+        // bundle provider, to avoid querying a task output provider before it completes.
+        task.getObfuscatedBundlePath().set(
+                project.getLayout().getBuildDirectory().file(
+                        "outputs/bundle/" + variant.getName() + "/" + extension.getObfuscatedBundleName()
+                )
+        );
 
         // Set extension properties
         task.getEnableObfuscation().set(extension.getEnableObfuscation());
