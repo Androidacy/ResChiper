@@ -1,6 +1,5 @@
 package com.androidacy.reschiper.utils;
 
-import com.androidacy.reschiper.operations.FileOperation;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -9,22 +8,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 public class Utils {
-    public static boolean isPresent(String str) {
-        return str != null && !str.isEmpty();
-    }
-
-    public static boolean isBlank(String str) {
-        return !isPresent(str);
-    }
-
-    public static boolean isPresent(Iterator<Boolean> iterator) {
-        return iterator != null && iterator.hasNext();
-    }
-
-    public static boolean isBlank(Iterator<Boolean> iterator) {
-        return !isPresent(iterator);
-    }
-
     public static String convertToPatternString(String input) {
         // ?	Zero or one character
         // *	Zero or more of character
@@ -43,13 +26,6 @@ public class Utils {
                 return false;
         }
         return true;
-    }
-
-    public static void cleanDir(@NotNull File dir) {
-        if (dir.exists()) {
-            FileOperation.deleteDir(dir);
-            dir.mkdirs();
-        }
     }
 
     public static String readInputStream(@NotNull InputStream inputStream) throws IOException {
@@ -77,32 +53,6 @@ public class Utils {
                 process.destroy();
         }
         return output;
-    }
-
-    public static String runExec(String[] argv) throws IOException, InterruptedException {
-        Process process = null;
-        String output;
-        try {
-            process = Runtime.getRuntime().exec(argv);
-            output = readInputStream(process.getInputStream());
-            process.waitFor();
-            if (process.exitValue() != 0) {
-                System.err.printf("%s Failed! Please check your signature file.\n%n", argv[0]);
-                throw new RuntimeException(readInputStream(process.getErrorStream()));
-            }
-        } finally {
-            if (process != null)
-                process.destroy();
-        }
-        return output;
-    }
-
-    private static void processOutputStreamInThread(@NotNull Process process) throws IOException {
-        InputStreamReader ir = new InputStreamReader(process.getInputStream());
-        LineNumberReader input = new LineNumberReader(ir);
-        // If not read, there may be issues; it is blocked.
-        while (input.readLine() != null) {
-        }
     }
 
     private static String replaceEach(String text, String[] searchList, String[] replacementList) {

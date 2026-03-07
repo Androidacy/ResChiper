@@ -2,27 +2,20 @@ package com.androidacy.reschiper.operations;
 
 import com.android.tools.build.bundletool.model.ZipPath;
 import com.android.tools.build.bundletool.model.utils.ZipUtils;
-import com.android.tools.build.bundletool.model.utils.files.FileUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.DecimalFormat;
-import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import static com.android.tools.build.bundletool.model.utils.files.FilePreconditions.checkFileExistsAndReadable;
 
 /**
  * Utility class for various file operations.
  */
 public class FileOperation {
     private static final Logger logger = Logger.getLogger(FileOperation.class.getName());
-    private static final int BUFFER = 8192;
 
     /**
      * Recursively deletes a directory and its contents.
@@ -46,49 +39,6 @@ public class FileOperation {
         }
         file.delete();
         return true;
-    }
-
-    /**
-     * Uncompressed a ZIP file to a target directory.
-     *
-     * @param uncompressedFile The ZIP file to uncompress.
-     * @param targetDir        The target directory to extract the contents.
-     * @throws IOException If an I/O error occurs during the uncompressed.
-     */
-    public static void uncompress(Path uncompressedFile, Path targetDir) throws IOException {
-        checkFileExistsAndReadable(uncompressedFile);
-        if (Files.exists(targetDir)) {
-            targetDir.toFile().delete();
-        } else {
-            FileUtils.createDirectories(targetDir);
-        }
-        ZipFile zipFile = new ZipFile(uncompressedFile.toFile());
-        try (zipFile) {
-            Enumeration<? extends ZipEntry> emu = zipFile.entries();
-            while (emu.hasMoreElements()) {
-                ZipEntry entry = emu.nextElement();
-                if (entry.isDirectory()) {
-                    FileUtils.createDirectories(new File(targetDir.toFile(), entry.getName()).toPath());
-                    continue;
-                }
-                BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
-                File file = new File(targetDir.toFile() + File.separator + entry.getName());
-                File parent = file.getParentFile();
-                if (parent != null && (!parent.exists())) {
-                    FileUtils.createDirectories(parent.toPath());
-                }
-                FileOutputStream fos = new FileOutputStream(file);
-                BufferedOutputStream bos = new BufferedOutputStream(fos, BUFFER);
-                byte[] buf = new byte[BUFFER];
-                int len;
-                while ((len = bis.read(buf, 0, BUFFER)) != -1) {
-                    fos.write(buf, 0, len);
-                }
-                bos.flush();
-                bos.close();
-                bis.close();
-            }
-        }
     }
 
     /**
@@ -152,39 +102,6 @@ public class FileOperation {
             size = 0;
         }
         return size;
-    }
-
-    /**
-     * Copies a file from a source location to a destination location using streams.
-     *
-     * @param source The source file to copy.
-     * @param dest   The destination file.
-     * @throws IOException If an I/O error occurs during the copying process.
-     */
-    public static void copyFileUsingStream(File source, @NotNull File dest) throws IOException {
-        FileInputStream is = null;
-        FileOutputStream os = null;
-        File parent = dest.getParentFile();
-        if (parent != null && (!parent.exists())) {
-            parent.mkdirs();
-        }
-        try {
-            is = new FileInputStream(source);
-            os = new FileOutputStream(dest, false);
-
-            byte[] buffer = new byte[BUFFER];
-            int length;
-            while ((length = is.read(buffer)) > 0) {
-                os.write(buffer, 0, length);
-            }
-        } finally {
-            if (is != null) {
-                is.close();
-            }
-            if (os != null) {
-                os.close();
-            }
-        }
     }
 
     /**
