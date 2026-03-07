@@ -118,12 +118,15 @@ public abstract class Command {
         String out = "";
         if (commandType == TYPE.OBFUSCATE_BUNDLE) {
             ObfuscateBundleCommand bundleCommand = getObfuscateBundleBuilder();
+            BundleFileFilter bundleFileFilter = null;
+            DuplicateResourceMerger merger = null;
+            ResourcesObfuscator obfuscator = null;
             // filter file
             if (bundleCommand.getFilterFile().isPresent() && bundleCommand.getFilterFile().get()) {
                 Set<String> fileFilterRules = new HashSet<>();
                 if (bundleCommand.getFileFilterRules().isPresent())
                     fileFilterRules = bundleCommand.getFileFilterRules().get();
-                BundleFileFilter bundleFileFilter = new BundleFileFilter(getBundlePath(), appBundle, fileFilterRules);
+                bundleFileFilter = new BundleFileFilter(getBundlePath(), appBundle, fileFilterRules);
                 appBundle = bundleFileFilter.filter();
             }
 
@@ -146,7 +149,7 @@ public abstract class Command {
 
             // merge duplicated resources
             if (bundleCommand.getMergeDuplicatedResources().isPresent() && bundleCommand.getMergeDuplicatedResources().get()) {
-                DuplicateResourceMerger merger = new DuplicateResourceMerger(getBundlePath(), appBundle, getOutputPath().getParent());
+                merger = new DuplicateResourceMerger(getBundlePath(), appBundle, getOutputPath().getParent());
                 appBundle = merger.merge();
             }
 
@@ -155,13 +158,17 @@ public abstract class Command {
                 Path mappingPath = null;
                 if (bundleCommand.getMappingPath().isPresent())
                     mappingPath = bundleCommand.getMappingPath().get();
-                ResourcesObfuscator obfuscator = new ResourcesObfuscator(getBundlePath(), appBundle, bundleCommand.getWhiteList(), getOutputPath().getParent(), mappingPath);
+                obfuscator = new ResourcesObfuscator(getBundlePath(), appBundle, bundleCommand.getWhiteList(), getOutputPath().getParent(), mappingPath);
                 obfuscator.withMode(obfuscator.getMode(bundleCommand.getObfuscationMode() == null ? "default" : bundleCommand.getObfuscationMode()));
                 appBundle = obfuscator.obfuscate();
             }
 
             // package bundle — must happen before closing ZipFile-backed resources
             new AppBundlePackager(appBundle, getOutputPath()).execute();
+            // close ZipFile-backed resources after packaging has consumed all ByteSources
+            if (bundleFileFilter != null) bundleFileFilter.close();
+            if (merger != null) merger.close();
+            if (obfuscator != null) obfuscator.close();
             // sign bundle
             if (bundleCommand.getDisableSign().isEmpty() || !bundleCommand.getDisableSign().get()) {
                 AppBundleSigner signer = new AppBundleSigner(getOutputPath());
@@ -184,7 +191,7 @@ public abstract class Command {
             DuplicateResMergerCommand resMergeCommand = getDuplicateResMergeBuilder();
             // merge duplicated resources file
             DuplicateResourceMerger merger = new DuplicateResourceMerger(getBundlePath(), appBundle, getOutputPath().getParent());
-                appBundle = merger.merge();
+            appBundle = merger.merge();
             // package bundle
             new AppBundlePackager(appBundle, getOutputPath()).execute();
             merger.close();
