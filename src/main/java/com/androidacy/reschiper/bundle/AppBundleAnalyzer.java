@@ -33,12 +33,12 @@ public class AppBundleAnalyzer {
      * @return The parsed AppBundle.
      * @throws IOException If an I/O error occurs while analyzing the AAB file.
      */
+    // ZipFile intentionally not closed — AppBundle holds lazy ByteSources backed by it
     public AppBundle analyze() throws IOException {
         TimeClock timeClock = new TimeClock();
-        try (ZipFile bundleZip = new ZipFile(bundlePath.toFile())) {
-            AppBundle appBundle = AppBundle.buildFromZip(bundleZip);
-            System.out.printf("Analysis of the bundle file completed, took %s%n", timeClock.getElapsedTime());
-            return appBundle;
-        }
+        ZipFile bundleZip = new ZipFile(bundlePath.toFile());
+        AppBundle appBundle = AppBundle.buildFromZip(bundleZip);
+        System.out.printf("Analysis of the bundle file completed, took %s%n", timeClock.getElapsedTime());
+        return appBundle;
     }
 }

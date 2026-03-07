@@ -99,15 +99,12 @@ public abstract class ResChiperTask extends DefaultTask {
     public abstract Property<String> getKeyStorePath();
 
     @Internal
-    @Optional
     public abstract Property<String> getStorePassword();
 
     @Internal
-    @Optional
     public abstract Property<String> getKeyAlias();
 
     @Internal
-    @Optional
     public abstract Property<String> getKeyPassword();
 
     @Internal
