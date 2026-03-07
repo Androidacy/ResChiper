@@ -38,6 +38,7 @@ public class ResourcesObfuscator implements Closeable {
     private static final Logger logger = Logger.getLogger(ResourcesObfuscator.class.getName());
     private final AppBundle rawAppBundle;
     private final Set<String> whiteListRules;
+    private final List<Pattern> compiledWhiteListPatterns;
     private final Path outputMappingPath;
     private final ZipFile bundleZipFile;
     private final ResourceMapping resourceMapping;
@@ -82,6 +83,11 @@ public class ResourcesObfuscator implements Closeable {
 
         this.rawAppBundle = rawAppBundle;
         this.whiteListRules = whiteListRules;
+        this.compiledWhiteListPatterns = new ArrayList<>();
+        if (whiteListRules != null) {
+            for (String rule : whiteListRules)
+                compiledWhiteListPatterns.add(Pattern.compile(Utils.convertToPatternString(rule)));
+        }
     }
 
     MODE mode;
@@ -379,9 +385,8 @@ public class ResourcesObfuscator implements Closeable {
         // android system resources should not be obfuscated
         if (resourceName.startsWith(RESOURCE_ANDROID_PREFIX))
             return true;
-        for (String rule : whiteListRules) {
-            Pattern filterPattern = Pattern.compile(Utils.convertToPatternString(rule));
-            if (filterPattern.matcher(resourceName).matches())
+        for (Pattern pattern : compiledWhiteListPatterns) {
+            if (pattern.matcher(resourceName).matches())
                 return true;
         }
         return false;

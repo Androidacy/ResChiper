@@ -126,25 +126,10 @@ public class FileOperation {
      * @return The file size in bytes.
      */
     public static long getFileSizes(@NotNull File f) {
-        long size = 0;
         if (f.exists() && f.isFile()) {
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(f);
-                size = fis.available();
-            } catch (IOException e) {
-                logger.log(Level.WARNING, "Unable to get FileSize", e);
-            } finally {
-                try {
-                    if (fis != null) {
-                        fis.close();
-                    }
-                } catch (IOException e) {
-                    logger.log(Level.WARNING, "Unable to get file size", e);
-                }
-            }
+            return f.length();
         }
-        return size;
+        return 0;
     }
 
     /**
@@ -155,14 +140,16 @@ public class FileOperation {
      * @return The size of the file in bytes.
      */
     public static long getZipPathFileSize(ZipFile zipFile, ZipEntry zipEntry) {
-        long size = 0;
-        //todo changed
-        try {
-            InputStream is = ZipUtils.asByteSource(zipFile, zipEntry).openStream();
-            size = is.available();
-            is.close();
+        long size = zipEntry.getSize();
+        if (size >= 0) {
+            return size;
+        }
+        // Fallback: read the full content length
+        try (InputStream is = ZipUtils.asByteSource(zipFile, zipEntry).openStream()) {
+            size = is.readAllBytes().length;
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to get ZipPath file size", e);
+            size = 0;
         }
         return size;
     }

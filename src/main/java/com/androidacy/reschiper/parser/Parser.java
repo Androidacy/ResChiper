@@ -8,6 +8,7 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
+import org.xml.sax.SAXException;
 
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -36,6 +37,16 @@ public class Parser {
             this.configPath = configPath;
         }
 
+        private static SAXReader createSecureReader() throws DocumentException {
+            SAXReader reader = new SAXReader();
+            try {
+                reader.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            } catch (SAXException e) {
+                throw new DocumentException("Failed to configure secure XML reader", e);
+            }
+            return reader;
+        }
+
         /**
          * Parses a file filter configuration from the XML document.
          *
@@ -44,7 +55,7 @@ public class Parser {
          */
         public FileFilterConfig fileFilterParse() throws DocumentException {
             FileFilterConfig fileFilter = new FileFilterConfig();
-            SAXReader reader = new SAXReader();
+            SAXReader reader = createSecureReader();
             Document doc = reader.read(configPath.toFile());
             Element root = doc.getRootElement();
             for (Iterator<Element> i = root.elementIterator("filter"); i.hasNext(); ) {
@@ -70,7 +81,7 @@ public class Parser {
          */
         public ResChiperConfig resChiperParse() throws DocumentException {
             ResChiperConfig resChiperConfig = new ResChiperConfig();
-            SAXReader reader = new SAXReader();
+            SAXReader reader = createSecureReader();
             Document doc = reader.read(configPath.toFile());
             Element root = doc.getRootElement();
             for (Iterator<Element> i = root.elementIterator("issue"); i.hasNext(); ) {
@@ -103,7 +114,7 @@ public class Parser {
          */
         public StringFilterConfig stringFilterParse() throws DocumentException {
             StringFilterConfig config = new StringFilterConfig();
-            SAXReader reader = new SAXReader();
+            SAXReader reader = createSecureReader();
             Document doc = reader.read(configPath.toFile());
             Element root = doc.getRootElement();
             for (Iterator<Element> i = root.elementIterator("filter-str"); i.hasNext(); ) {

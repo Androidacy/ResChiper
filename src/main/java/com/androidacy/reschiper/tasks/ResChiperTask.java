@@ -236,17 +236,26 @@ public abstract class ResChiperTask extends DefaultTask {
 
         // Auto-detect from build outputs
         String variantName = getVariantName().get();
-        // Extract flavor name by removing build type suffix (Release/Debug)
-        String simpleName = variantName.replaceAll("(?i)(Release|Debug)$", "");
+        // Extract build type: variant name format is {flavor}{BuildType} where BuildType is capitalized.
+        // Find the last uppercase letter boundary to extract the build type.
+        String buildType = variantName;
+        String simpleName = "";
+        for (int i = variantName.length() - 1; i > 0; i--) {
+            if (Character.isUpperCase(variantName.charAt(i))) {
+                buildType = variantName.substring(i).toLowerCase();
+                simpleName = variantName.substring(0, i);
+                break;
+            }
+        }
+        if (simpleName.isEmpty()) {
+            buildType = variantName.toLowerCase();
+        }
         String name;
         if (simpleName.isEmpty()) {
-            // No flavor, just use the build type
             name = variantName.toLowerCase();
         } else {
             name = Character.toLowerCase(simpleName.charAt(0)) + simpleName.substring(1);
         }
-        // Determine build type for path
-        String buildType = variantName.toLowerCase().endsWith("release") ? "release" : "debug";
         String resourcePath = getBuildDirectory().get().getAsFile().getAbsolutePath() + "/outputs/mapping/" + name + "/" + buildType + "/unused_strings.txt";
         File autoDetectedFile = new File(resourcePath);
 

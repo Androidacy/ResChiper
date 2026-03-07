@@ -40,7 +40,7 @@ public class DuplicateResourceMerger implements Closeable {
     private final AppBundle rawAppBundle;
     private final Map<String, ZipPath> md5FileList = new HashMap<>();
     private final Map<ZipPath, String> duplicatedFileList = new HashMap<>();
-    private int mergeDuplicatedTotalSize = 0;
+    private long mergeDuplicatedTotalSize = 0;
     private int mergeDuplicatedTotalCount = 0;
 
     /**
@@ -175,7 +175,7 @@ public class DuplicateResourceMerger implements Closeable {
      * @throws IOException If there is an issue with writing the log file.
      */
     private void generateDuplicatedLog(@NotNull File logFile, BundleModule bundleModule) throws IOException {
-        int duplicatedSize = 0;
+        long duplicatedSize = 0;
         checkFileDoesNotExist(logFile.toPath());
         try (Writer writer = new BufferedWriter(new FileWriter(logFile, false))) {
             writer.write("res filter path mapping:\n");
@@ -187,7 +187,7 @@ public class DuplicateResourceMerger implements Closeable {
             for (Map.Entry<ZipPath, String> entry : duplicatedFileList.entrySet()) {
                 ModuleEntry moduleEntry = bundleModule.getEntry(entry.getKey()).get();
                 long fileSize = AppBundleUtils.getZipEntrySize(bundleZipFile, moduleEntry, bundleModule);
-                duplicatedSize += (int) fileSize;
+                duplicatedSize += fileSize;
             }
 
             System.out.printf("Found duplicated resources (Count: %d, Total Size: %s):\n%n", duplicatedFileList.size(), FileOperation.getNetFileSizeDescription(duplicatedSize));
@@ -196,7 +196,7 @@ public class DuplicateResourceMerger implements Closeable {
                 ZipPath keepPath = md5FileList.get(entry.getValue());
                 ModuleEntry moduleEntry = bundleModule.getEntry(entry.getKey()).get();
                 long fileSize = AppBundleUtils.getZipEntrySize(bundleZipFile, moduleEntry, bundleModule);
-                duplicatedSize += (int) fileSize;
+                duplicatedSize += fileSize;
                 System.out.printf("- %s (size %s)%n", entry.getKey().toString(), FileOperation.getNetFileSizeDescription(duplicatedSize));
                 writer.write("\t" + entry.getKey().toString()
                         + " -> "

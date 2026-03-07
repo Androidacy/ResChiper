@@ -188,13 +188,9 @@ public class BundleStringFilter {
         if (lan == null || lan.equals(" ") || lan.isEmpty())
             return true;
         if (lan.contains("-")) {
-            int index = lan.indexOf("-");
-            if (index != -1) {
-                String language = lan.substring(0, index);
-                return languageWhiteList.contains(language);
-            }
-        } else
-            return languageWhiteList.contains(lan);
-        return false;
+            String language = lan.substring(0, lan.indexOf("-"));
+            return languageWhiteList.contains(language);
+        }
+        return languageWhiteList.contains(lan);
     }
 }

@@ -41,7 +41,8 @@ public class BundleFileFilter implements Closeable {
     private final ZipFile bundleZipFile;
     private final AppBundle rawAppBundle;
     private final Set<String> filterRules;
-    private int filterTotalSize = 0;
+    private final Map<String, Pattern> compiledFilterPatterns = new LinkedHashMap<>();
+    private long filterTotalSize = 0;
     private int filterTotalCount = 0;
 
     /**
@@ -58,6 +59,8 @@ public class BundleFileFilter implements Closeable {
         this.rawAppBundle = rawAppBundle;
         this.filterRules = new HashSet<>(filterRules != null ? filterRules : Set.of());
         this.filterRules.addAll(FILE_SIGN);
+        for (String rule : this.filterRules)
+            this.compiledFilterPatterns.put(rule, Pattern.compile(Utils.convertToPatternString(rule)));
     }
 
     /**
@@ -108,7 +111,7 @@ public class BundleFileFilter implements Closeable {
                         checkFilteredEntry(entry, filterRule);
                         System.out.printf(" - %s%n", entry.getPath());
                         filteredModuleEntries.add(entry);
-                        filterTotalSize += (int) AppBundleUtils.getZipEntrySize(bundleZipFile, entry, bundleModule);
+                        filterTotalSize += AppBundleUtils.getZipEntrySize(bundleZipFile, entry, bundleModule);
                         return false;
                     }
                     return true;
@@ -172,7 +175,7 @@ public class BundleFileFilter implements Closeable {
                     if (getMatchedFilterRule(entryZipPath) != null) {
                         System.out.printf(" - %s%n", entryZipPath);
                         filterTotalCount += 1;
-                        filterTotalSize += (int) AppBundleUtils.getZipEntrySize(bundleZipFile, entryZipPath);
+                        filterTotalSize += AppBundleUtils.getZipEntrySize(bundleZipFile, entryZipPath);
                         return false;
                     }
                     return true;
@@ -198,10 +201,9 @@ public class BundleFileFilter implements Closeable {
      * @return The matched filter rule, or null if no rule matches.
      */
     private @Nullable String getMatchedFilterRule(ZipPath zipPath) {
-        for (String rule : filterRules) {
-            Pattern filterPattern = Pattern.compile(Utils.convertToPatternString(rule));
-            if (filterPattern.matcher(zipPath.toString()).matches())
-                return rule;
+        for (Map.Entry<String, Pattern> entry : compiledFilterPatterns.entrySet()) {
+            if (entry.getValue().matcher(zipPath.toString()).matches())
+                return entry.getKey();
         }
         return null;
     }
