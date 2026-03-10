@@ -157,11 +157,16 @@ public abstract class ResChiperTask extends DefaultTask {
         if (getMappingFilePath().isPresent() && !getMappingFilePath().get().isEmpty())
             obfuscateBuilder.setMappingPath(Path.of(getMappingFilePath().get()));
 
-        if (keyStore.storeFile() != null && keyStore.storeFile().exists())
+        if (keyStore.storeFile() != null && keyStore.storeFile().exists()) {
             builder.setStoreFile(keyStore.storeFile().toPath())
                     .setKeyAlias(keyStore.keyAlias())
                     .setKeyPassword(keyStore.keyPassword())
                     .setStorePassword(keyStore.storePassword());
+        } else {
+            logger.warning("No signing config found for variant '" + getVariantName().get()
+                    + "'. The obfuscated bundle will NOT be signed. "
+                    + "Unsigned bundles cannot be uploaded to the Play Store.");
+        }
 
         builder.setObfuscateBundleBuilder(obfuscateBuilder.build());
 

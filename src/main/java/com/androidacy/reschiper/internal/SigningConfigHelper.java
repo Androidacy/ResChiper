@@ -11,13 +11,10 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-
 public class SigningConfigHelper {
     /**
-     * Gets the signing configuration for a variant by looking up the DSL.
-     * In AGP 9.0, variant.getSigningConfig() doesn't expose credentials directly,
-     * so we need to look them up from the DSL extension.
+     * Gets the signing configuration for a variant by looking up the build type's
+     * signing config from the DSL extension.
      *
      * @param project The Gradle project
      * @param variant The Android application variant
@@ -35,29 +32,13 @@ public class SigningConfigHelper {
             return new KeyStore(null, null, null, null);
         }
 
-        // Get the build type configuration
         ApplicationBuildType buildTypeConfig = findBuildType(android, buildType);
         if (buildTypeConfig == null) {
             return new KeyStore(null, null, null, null);
         }
 
-        // Get the signing config name from the build type
-        String signingConfigName = getSigningConfigName(buildTypeConfig);
-        if (signingConfigName == null) {
-            // Try using the build type name as signing config name (common convention)
-            signingConfigName = buildType;
-        }
-
-        // Look up the signing config from the DSL
-        ApkSigningConfig signingConfig = findSigningConfig(android, signingConfigName);
-        if (signingConfig == null) {
-            // Try "release" or "debug" as fallback
-            signingConfig = findSigningConfig(android, "release");
-            if (signingConfig == null) {
-                signingConfig = findSigningConfig(android, "debug");
-            }
-        }
-
+        // Get the signing config directly from the build type DSL object
+        ApkSigningConfig signingConfig = buildTypeConfig.getSigningConfig();
         if (signingConfig == null) {
             return new KeyStore(null, null, null, null);
         }
@@ -75,33 +56,6 @@ public class SigningConfigHelper {
         try {
             NamedDomainObjectContainer<? extends ApplicationBuildType> buildTypes = android.getBuildTypes();
             return buildTypes.findByName(name);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static String getSigningConfigName(@NotNull ApplicationBuildType buildType) {
-        try {
-            // In AGP 9.0, build types reference signing configs by name
-            // This is accessed through the DSL but may not be directly exposed
-            // We'll try reflection as a fallback
-            var method = buildType.getClass().getMethod("getSigningConfig");
-            Object signingConfig = method.invoke(buildType);
-            if (signingConfig != null) {
-                var nameMethod = signingConfig.getClass().getMethod("getName");
-                return (String) nameMethod.invoke(signingConfig);
-            }
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    @Nullable
-    private static ApkSigningConfig findSigningConfig(@NotNull ApplicationExtension android, @NotNull String name) {
-        try {
-            NamedDomainObjectContainer<? extends ApkSigningConfig> signingConfigs = android.getSigningConfigs();
-            return signingConfigs.findByName(name);
         } catch (Exception e) {
             return null;
         }
