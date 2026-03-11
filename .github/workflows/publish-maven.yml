@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: maven-central
 
     steps:
