@@ -11,10 +11,20 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+
 public class SigningConfigHelper {
+
+    // Properties injected by Android Studio's "Generate Signed Bundle/APK" UI
+    private static final String INJECTED_STORE_FILE = "android.injected.signing.store.file";
+    private static final String INJECTED_STORE_PASSWORD = "android.injected.signing.store.password";
+    private static final String INJECTED_KEY_ALIAS = "android.injected.signing.key.alias";
+    private static final String INJECTED_KEY_PASSWORD = "android.injected.signing.key.password";
+
     /**
      * Gets the signing configuration for a variant by looking up the build type's
-     * signing config from the DSL extension.
+     * signing config from the DSL extension, falling back to injected properties
+     * set by Android Studio's "Generate Signed Bundle/APK" UI.
      *
      * @param project The Gradle project
      * @param variant The Android application variant
@@ -22,6 +32,18 @@ public class SigningConfigHelper {
      */
     @Contract("_, _ -> new")
     public static @NotNull KeyStore getSigningConfig(@NotNull Project project, @NotNull ApplicationVariant variant) {
+        // First try DSL signing config from the build type
+        KeyStore dslConfig = getSigningConfigFromDsl(project, variant);
+        if (dslConfig.storeFile() != null) {
+            return dslConfig;
+        }
+
+        // Fall back to injected properties (Android Studio "Generate Signed Bundle/APK" flow)
+        return getSigningConfigFromInjectedProperties(project);
+    }
+
+    @Contract("_, _ -> new")
+    private static @NotNull KeyStore getSigningConfigFromDsl(@NotNull Project project, @NotNull ApplicationVariant variant) {
         ApplicationExtension android = project.getExtensions().findByType(ApplicationExtension.class);
         if (android == null) {
             return new KeyStore(null, null, null, null);
@@ -37,7 +59,6 @@ public class SigningConfigHelper {
             return new KeyStore(null, null, null, null);
         }
 
-        // Get the signing config directly from the build type DSL object
         ApkSigningConfig signingConfig = buildTypeConfig.getSigningConfig();
         if (signingConfig == null) {
             return new KeyStore(null, null, null, null);
@@ -49,6 +70,30 @@ public class SigningConfigHelper {
                 signingConfig.getKeyAlias(),
                 signingConfig.getKeyPassword()
         );
+    }
+
+    @Contract("_ -> new")
+    private static @NotNull KeyStore getSigningConfigFromInjectedProperties(@NotNull Project project) {
+        String storeFilePath = getProjectProperty(project, INJECTED_STORE_FILE);
+        if (storeFilePath == null) {
+            return new KeyStore(null, null, null, null);
+        }
+
+        return new KeyStore(
+                new File(storeFilePath),
+                getProjectProperty(project, INJECTED_STORE_PASSWORD),
+                getProjectProperty(project, INJECTED_KEY_ALIAS),
+                getProjectProperty(project, INJECTED_KEY_PASSWORD)
+        );
+    }
+
+    @Nullable
+    private static String getProjectProperty(@NotNull Project project, @NotNull String name) {
+        if (project.hasProperty(name)) {
+            Object value = project.property(name);
+            return value != null ? value.toString() : null;
+        }
+        return null;
     }
 
     @Nullable
